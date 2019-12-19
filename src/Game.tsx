@@ -1,145 +1,99 @@
 import React from 'react';
+import { Dot } from './Dot';
 
-const KEYS = {
-    LEFT: 37,
-    RIGHT: 39,
-    UP: 38,
-    DOWN: 40
+type Props = {
+
+};
+
+type Waypoint = {
+    x: number,
+    y: number,
+    checked: boolean
 };
 
 type State = {
-    speedX: number,
-    speedY: number,
-    positionX: number,
-    positionY: number,
-    keysPressed: Array<any>,
-}
+    waypoints: Array<Waypoint>;
+    startTime: Date;
+    timer: number;
+};
 
-export class Game extends React.Component<any, State> {
-    animationInterval: number | null = null;
-    acceleration: number = 0.1;
-    deceleration: number = 0.3;
-    decay: number = 0.05;
-    size: number = 20;
+export class Game extends React.Component<Props, State> {
+    nWaypoints = 10;
+    waypointSize = 50;
+    timerInterval: number | null = null;
 
-    constructor(props: any) {
+    constructor(props: Props) {
         super(props);
 
-        this.animationInterval = null;
         this.state = {
-            speedX: 0,
-            speedY: 0,
-            positionX: window.innerWidth / 2,
-            positionY: window.innerHeight / 2,
-            keysPressed: []
+            waypoints: this.generateWaypoints(),
+            startTime: new Date(),
+            timer: 0
         }
-    }
-    handleKeyDown = (e: KeyboardEvent) => {
-        if (Object.values(KEYS).includes(e.keyCode)) {
-            this.setState(prevState => ({ keysPressed: [...prevState.keysPressed, e.keyCode] }))
-        }
-    }
-
-    handleKeyUp = (e: KeyboardEvent) => {
-        this.setState(prevState => ({ keysPressed: prevState.keysPressed.filter(key => key !== e.keyCode) }));
-    }
-
-    updatePosition = () => {
-        const newState = { ...this.state };
-
-        if (this.state.keysPressed.includes(KEYS.UP)) {
-            newState.speedY -= this.state.speedY < 0 ? this.acceleration : this.deceleration;
-        }
-        if (this.state.keysPressed.includes(KEYS.DOWN)) {
-            newState.speedY += this.state.speedY > 0 ? this.acceleration : this.deceleration;
-        }
-        if (this.state.keysPressed.includes(KEYS.LEFT)) {
-            newState.speedX -= this.state.speedX < 0 ? this.acceleration : this.deceleration;
-        }
-        if (this.state.keysPressed.includes(KEYS.RIGHT)) {
-            newState.speedX += this.state.speedX > 0 ? this.acceleration : this.deceleration;
-        }
-
-        // Slow down Y axis if not being pressed
-        if (
-            !this.state.keysPressed.includes(KEYS.UP) &&
-            !this.state.keysPressed.includes(KEYS.DOWN) &&
-            this.state.speedY !== 0
-        ) {
-            if (this.state.speedY > 0) {
-                newState.speedY -= this.acceleration;
-            } else {
-                newState.speedY += this.acceleration;
-            }
-        }
-
-        // Slow down X axis if not being pressed
-        if (
-            !this.state.keysPressed.includes(KEYS.LEFT) &&
-            !this.state.keysPressed.includes(KEYS.RIGHT) &&
-            this.state.speedX !== 0
-        ) {
-            if (this.state.speedX > 0) {
-                newState.speedX -= this.acceleration;
-            } else {
-                newState.speedX += this.acceleration;
-            }
-        }
-
-        newState.positionX = this.state.positionX + this.state.speedX;
-        newState.positionY = this.state.positionY + this.state.speedY;
-
-        // lock in the speeds
-        if (Math.abs(newState.speedX) < this.decay) {
-            newState.speedX = 0;
-        }
-        if (Math.abs(newState.speedY) < this.decay) {
-            newState.speedY = 0;
-        }
-
-        // build in the walls
-        // left wall
-        if (newState.positionX < this.size / 2) {
-            newState.positionX = this.size / 2;
-            newState.speedX = 0;
-        }
-        // right wall
-        if (newState.positionX > window.innerWidth - this.size / 2) {
-            newState.positionX = window.innerWidth - this.size / 2;
-            newState.speedX = 0;
-        }
-        // top wall
-        if (newState.positionY < this.size / 2) {
-            newState.positionY = this.size / 2;
-            newState.speedY = 0;
-        }
-
-        // bottom wall
-        if (newState.positionY > window.innerHeight - this.size / 2) {
-            newState.positionY = window.innerHeight - this.size / 2;
-            newState.speedY = 0;
-        }
-
-        this.setState(newState);
     }
 
     componentDidMount() {
-        document.addEventListener('keydown', this.handleKeyDown);
-        document.addEventListener('keyup', this.handleKeyUp);
-        this.animationInterval = setInterval(this.updatePosition, 20);
+        this.timerInterval = setInterval(() => {
+            this.setState({ timer: new Date().getTime() - this.state.startTime.getTime() })
+        }, 10);
+    }
+
+    componentDidUpdate() {
+        if (this.timerInterval && !this.state.waypoints.find(w => !w.checked)) {
+            this.stopTimer();
+        }
     }
 
     componentWillUnmount() {
-        document.removeEventListener('keydown', this.handleKeyDown);
-        clearInterval(Number(this.animationInterval));
+        this.stopTimer();
+    }
+
+    generateWaypoints = () => {
+        const waypoints = [];
+        for (let i = 0; i < this.nWaypoints; i++) {
+            waypoints.push({
+                x: Math.random() * (window.innerWidth - this.waypointSize) + this.waypointSize / 2,
+                y: Math.random() * (window.innerHeight - this.waypointSize) + this.waypointSize / 2,
+                checked: false
+            });
+        }
+        return waypoints;
+    }
+
+    updateDot = (position: { x: number, y: number }) => {
+        const currentWaypoint = this.state.waypoints.find(w => !w.checked);
+        if (!currentWaypoint) {
+            return;
+        }
+        if (Math.abs(position.x - currentWaypoint.x) < this.waypointSize / 2 && Math.abs(position.y - currentWaypoint.y) < this.waypointSize / 2) {
+            this.setState(prevState => ({
+                waypoints: prevState.waypoints.map(w => ({
+                    ...w,
+                    checked: w.x === currentWaypoint.x ? true : w.checked
+                }))
+            }))
+        }
+    }
+
+    stopTimer() {
+        clearInterval(Number(this.timerInterval));
     }
 
     render() {
-        const { positionX, positionY } = this.state;
+        const currentWaypoint = this.state.waypoints.find(w => !w.checked);
+
         return (
-            <div style={{ position: 'absolute', top: positionY, left: positionX }}>
-                <div style={{ background: 'red', position: 'absolute', top: -this.size / 2, left: -this.size / 2, width: this.size, height: this.size }} />
-            </div>
+            <>
+                <div>{Number(this.state.timer / 1000).toFixed(3)}</div>
+                {this.state.waypoints.map((waypoint, index) => (
+                    <div key={waypoint.x} style={{ position: 'absolute', top: waypoint.y, left: waypoint.x }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', position: 'absolute', top: -this.waypointSize / 2, left: -this.waypointSize / 2, width: this.waypointSize, height: this.waypointSize, borderRadius: '50%', background: currentWaypoint && currentWaypoint.x === waypoint.x ? 'cyan' : waypoint.checked ? 'grey' : 'blue' }}>
+                            {index + 1}
+                        </div>
+                    </div>
+                ))}
+                <Dot onUpdate={this.updateDot} />
+            </>
         );
     }
 }
