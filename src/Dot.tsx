@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'styled-components';
 
 const KEYS = {
     LEFT: 37,
@@ -9,6 +10,7 @@ const KEYS = {
 
 type Props = {
     onUpdate: Function;
+    frozen: boolean;
 }
 
 type State = {
@@ -19,11 +21,28 @@ type State = {
     keysPressed: Array<any>,
 }
 
+const DotContainer = styled.div<any>`
+    position: absolute;
+    top: ${p => p.positionY}px;
+    left: ${p => p.positionX}px;
+`;
+
+const DotStyles = styled.div<any>`
+    background: red;
+    border: 1px solid black;
+    box-sizing: border-box;
+    position: absolute;
+    top: -${p => p.size / 2}px;
+    left: -${p => p.size / 2}px;
+    width: ${p => p.size}px;
+    height: ${p => p.size}px;
+`;
+
 export class Dot extends React.Component<Props, State> {
     animationInterval: number | null = null;
-    acceleration: number = 0.1;
-    deceleration: number = 0.3;
-    decay: number = 0.05;
+    acceleration: number = 0.05;
+    deceleration: number = 0.2;
+    decay: number = 0.025;
     size: number = 20;
 
     constructor(props: any) {
@@ -34,7 +53,7 @@ export class Dot extends React.Component<Props, State> {
             speedX: 0,
             speedY: 0,
             positionX: window.innerWidth / 2,
-            positionY: window.innerHeight / 2,
+            positionY: 100 + ((window.innerHeight - 100) / 2),
             keysPressed: []
         }
     }
@@ -49,6 +68,9 @@ export class Dot extends React.Component<Props, State> {
     }
 
     updatePosition = () => {
+        if (this.props.frozen) {
+            return;
+        }
         const newState = { ...this.state };
 
         if (this.state.keysPressed.includes(KEYS.UP)) {
@@ -113,8 +135,8 @@ export class Dot extends React.Component<Props, State> {
             newState.speedX = 0;
         }
         // top wall
-        if (newState.positionY < this.size / 2) {
-            newState.positionY = this.size / 2;
+        if (newState.positionY < this.size / 2 + 100) {
+            newState.positionY = this.size / 2 + 100;
             newState.speedY = 0;
         }
 
@@ -142,9 +164,9 @@ export class Dot extends React.Component<Props, State> {
     render() {
         const { positionX, positionY } = this.state;
         return (
-            <div style={{ position: 'absolute', top: positionY, left: positionX }}>
-                <div style={{ background: 'red', position: 'absolute', top: -this.size / 2, left: -this.size / 2, width: this.size, height: this.size }} />
-            </div>
+            <DotContainer positionX={positionX} positionY={positionY}>
+                <DotStyles size={this.size} />
+            </DotContainer>
         );
     }
 }
