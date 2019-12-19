@@ -1,5 +1,27 @@
 import React from 'react';
+import styled from 'styled-components';
+
 import { Dot } from './Dot';
+
+const WaypointWrapper = styled.div<any>`
+    position: absolute;
+    top: ${p => p.waypoint.y}px;
+    left: ${p => p.waypoint.x}px;
+`;
+
+const Waypoint = styled.div<any>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    position: absolute;
+    top: -${p => p.size / 2}px;
+    left: -${p => p.size / 2}px;
+    width: ${p => p.size}px;
+    height: ${p => p.size}px;
+    border-radius: 50%;
+    background: ${p => p.isCurrentWaypoint ? 'cyan' : p.waypoint.checked ? 'grey' : 'blue'};
+`;
 
 type Props = {
 
@@ -86,11 +108,15 @@ export class Game extends React.Component<Props, State> {
             <>
                 <div>{Number(this.state.timer / 1000).toFixed(3)}</div>
                 {this.state.waypoints.map((waypoint, index) => (
-                    <div key={waypoint.x} style={{ position: 'absolute', top: waypoint.y, left: waypoint.x }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', position: 'absolute', top: -this.waypointSize / 2, left: -this.waypointSize / 2, width: this.waypointSize, height: this.waypointSize, borderRadius: '50%', background: currentWaypoint && currentWaypoint.x === waypoint.x ? 'cyan' : waypoint.checked ? 'grey' : 'blue' }}>
+                    <WaypointWrapper key={waypoint.x} waypoint={waypoint}>
+                        <Waypoint
+                            size={this.waypointSize}
+                            waypoint={waypoint}
+                            isCurrentWaypoint={currentWaypoint && waypoint.x === currentWaypoint.x}
+                        >
                             {index + 1}
-                        </div>
-                    </div>
+                        </Waypoint>
+                    </WaypointWrapper>
                 ))}
                 <Dot onUpdate={this.updateDot} />
             </>
